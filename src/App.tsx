@@ -1,94 +1,64 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import MinMaxDisplay from "./MinMaxDisplay";
-const generateRandomArrayWorker = import("./workers/generate-random-array");
+import SumDisplay from "./SumDisplay";
 
 function App() {
-  const worker = useMemo(() => {
-    return new Worker(generateRandomArrayWorker);
-  }, []);
-
-  const INITIAL_LIST_LENGTH = 5;
+  const INITIAL_NUMBER = 5;
+  const MAX_NUMBER = 1000000000;
 
   // debounce time on list length input
   const TIME_TO_COMMIT_MS = 500;
 
   // user input state (raw)
-  const [listLengthUserInput, setListLengthUserInput] = useState(() =>
-    INITIAL_LIST_LENGTH.toString()
-  );
+  const [rawUserInput, setRawUserInput] = useState(INITIAL_NUMBER.toString());
 
-  // debounced and validated list length
-  const [listLength, setListLength] = useState(INITIAL_LIST_LENGTH);
-
-  // function to parse and validate user input to integer
-  const parseUserInputToInt = useCallback((userInput: string) => {
-    const num = parseInt(userInput, 10);
-    if (isNaN(num) || num <= 0) {
+  const parsedIntUserInput = useMemo(() => {
+    const num = parseInt(rawUserInput, 10);
+    if (isNaN(num)) {
       return;
     }
     return num;
-  }, []);
+  }, [rawUserInput]);
+
+  // debounced and validated list length
+  const [num, setNum] = useState(INITIAL_NUMBER);
 
   // Debounce user input and only set value after TIME_TO_COMMIT_MS
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const newLength = parseUserInputToInt(listLengthUserInput);
-      if (!newLength) return;
-      setListLength(newLength);
+      const newNum = parsedIntUserInput;
+      if (newNum === undefined) return;
+      let clampedValue = Math.min(newNum, MAX_NUMBER);
+      clampedValue = Math.max(clampedValue, 0);
+      setNum(clampedValue);
+      if (clampedValue === newNum) return;
+      setRawUserInput(clampedValue.toString());
     }, TIME_TO_COMMIT_MS);
     return () => clearTimeout(timeout);
-  }, [listLengthUserInput, parseUserInputToInt]);
+  }, [parsedIntUserInput]);
 
-  const [randomNumbers, setRandomNumbers] = useState<number[]>([]);
-  const [isGenerating, setIsGenerating] = useState(false);
-
-  useEffect(() => {
-    console.log("sending message to worker");
-    setIsGenerating(true);
-    worker.postMessage(listLength);
-  }, [listLength, worker]);
-
-  useEffect(() => {
-    if (window.Worker) {
-      console.log("Web Worker is supported... registering event listener.");
-      const onMessage = (event: MessageEvent) => {
-        console.log("got message from worker", event.data.length);
-        setRandomNumbers(event.data);
-        setIsGenerating(false);
-      };
-      worker.addEventListener("message", onMessage);
-      return () => worker.removeEventListener("message", onMessage);
-    }
-  }, [worker]);
-
-  // Title to be displayed on the MinMaxDisplay component
-  const [numberListTitle, setNumberListTitle] = useState("Random Numbers");
-
-  // function implementing the min and max value calculation
-  const getMinAndMaxValue = useCallback((numbers: number[]) => {
-    if (!numbers.length) return { min: 0, max: 0 };
+  const getSumOfAllNumbersThroughN = useCallback((n: number) => {
     const start = performance.now();
-    let min = Number.MAX_VALUE;
-    let max = Number.MIN_VALUE;
-    numbers.forEach((num) => {
-      num < min && (min = num);
-      num > max && (max = num);
-    });
+    let sum = 0;
+    for (let i = 0; i <= n; i++) {
+      sum += i;
+    }
     const end = performance.now();
-    console.log("Time to calculate min and max values:", end - start, "ms");
-    return { min, max };
+    console.log("Time taken to calculate sum:", end - start, "ms");
+    return sum;
   }, []);
+
+  const [compTitle, setCompTitle] = useState("Random Numbers");
 
   // memoized child component to avoid re-rendering needlessly
   const childComp = useMemo(
     () => (
-      <MinMaxDisplay
-        numbers={randomNumbers}
-        numberListTitle={numberListTitle}
-        getMinAndMaxValue={getMinAndMaxValue}
+      <SumDisplay
+        num={num}
+        compTitle={compTitle}
+        getSumOfAllNumbersThroughN={getSumOfAllNumbersThroughN}
       />
     ),
-    [randomNumbers, numberListTitle, getMinAndMaxValue]
+    [num, compTitle, getSumOfAllNumbersThroughN]
   );
 
   return (
@@ -97,17 +67,16 @@ function App() {
         <label>Size of Number List</label>
         <br />
         <input
-          onChange={(e) => setListLengthUserInput(e.target.value)}
-          value={listLengthUserInput}
+          onChange={(e) => setRawUserInput(e.target.value)}
+          value={rawUserInput}
         ></input>
         <br />
-        <label>Title of Number List</label>
+        <label>Title of Component</label>
         <br />
         <input
-          onChange={(e) => setNumberListTitle(e.target.value)}
-          value={numberListTitle}
+          onChange={(e) => setCompTitle(e.target.value)}
+          value={compTitle}
         ></input>
-        <p>{isGenerating ? "Generating random numbers..." : "Synced"}</p>
         {childComp}
       </div>
     </>
