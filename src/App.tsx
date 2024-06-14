@@ -22,8 +22,28 @@ function App() {
   // debounced and validated list length
   const [num, setNum] = useState(INITIAL_NUMBER);
 
+  // adding state to keep track of previously entered values for checking against
+  const [valueHistroy, setValueHistory] = useState<number[]>([]);
+  // adding state to determine when to display error to user
+  const [errMessage, setErrMessage] = useState("");
   // Debounce user input and only set value after TIME_TO_COMMIT_MS
   useEffect(() => {
+    numHasBeenUsed();
+  }, [parsedIntUserInput]);
+
+  const numHasBeenUsed = () => {
+    const valueToCheck = parseInt(rawUserInput);
+    if (Number.isNaN(valueToCheck)) return;
+    const valueUsed = valueHistroy.includes(valueToCheck);
+    if (valueUsed) {
+      setErrMessage(`${valueToCheck} has previous been used`);
+      return;
+    }
+    setErrMessage("");
+    setValueHistory([...valueHistroy, num]);
+    executeOperations();
+  };
+  const executeOperations = () => {
     const timeout = setTimeout(() => {
       const newNum = parsedIntUserInput;
       if (newNum === undefined) return;
@@ -34,8 +54,7 @@ function App() {
       setRawUserInput(clampedValue.toString());
     }, TIME_TO_COMMIT_MS);
     return () => clearTimeout(timeout);
-  }, [parsedIntUserInput]);
-
+  };
   const getSumOfAllNumbersThroughN = useCallback((n: number) => {
     const start = performance.now();
     let sum = 0;
@@ -77,7 +96,7 @@ function App() {
           onChange={(e) => setCompTitle(e.target.value)}
           value={compTitle}
         ></input>
-        {childComp}
+        {errMessage ? <h1>{errMessage}</h1> : childComp}
       </div>
     </>
   );

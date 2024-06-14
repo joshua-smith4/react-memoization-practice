@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 interface SumDisplayProps {
   num: number;
   compTitle: string;
@@ -9,7 +11,11 @@ export default function SumDisplay({
   compTitle,
   getSumOfAllNumbersThroughN,
 }: SumDisplayProps) {
-  const res = getSumOfAllNumbersThroughN(num);
+  // wrapping this with useMemo call back to only execute this function when num has changed.
+  const res = useMemo(() => {
+    return getSumOfAllNumbersThroughN(num);
+  }, [num]);
+
   return (
     <div>
       <h2>{compTitle}</h2>
