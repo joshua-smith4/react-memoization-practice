@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface SumDisplayProps {
   num: number;
@@ -11,10 +11,23 @@ export default function SumDisplay({
   compTitle,
   getSumOfAllNumbersThroughN,
 }: SumDisplayProps) {
-  // wrapping this with useMemo call back to only execute this function when num has changed.
+  const [valueHistory, setValueHistory] = useState<
+    { number: number; res: number }[]
+  >([]);
+
+  // useMemo to cache the result of a calculation
   const res = useMemo(() => {
-    return getSumOfAllNumbersThroughN(num);
-  }, [num]);
+    // Check if we already have this number calculated
+    const existingEntry = valueHistory.find((entry) => entry.number === num);
+    if (existingEntry) {
+      return existingEntry.res;
+    } else {
+      // Calculate and update history if it's a new number
+      const result = getSumOfAllNumbersThroughN(num);
+      setValueHistory((history) => [...history, { number: num, res: result }]);
+      return result;
+    }
+  }, [num, valueHistory, getSumOfAllNumbersThroughN]);
 
   return (
     <div>
