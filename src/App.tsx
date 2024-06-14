@@ -49,18 +49,6 @@ function App() {
 
   const [compTitle, setCompTitle] = useState("Random Numbers");
 
-  // memoized child component to avoid re-rendering needlessly
-  const childComp = useMemo(
-    () => (
-      <SumDisplay
-        num={num}
-        compTitle={compTitle}
-        getSumOfAllNumbersThroughN={getSumOfAllNumbersThroughN}
-      />
-    ),
-    [num, compTitle, getSumOfAllNumbersThroughN]
-  );
-
   return (
     <>
       <div>
@@ -77,7 +65,11 @@ function App() {
           onChange={(e) => setCompTitle(e.target.value)}
           value={compTitle}
         ></input>
-        {childComp}
+        <SumDisplay
+          num={num}
+          compTitle={compTitle}
+          getSumOfAllNumbersThroughN={getSumOfAllNumbersThroughN}
+        />
       </div>
     </>
   );
